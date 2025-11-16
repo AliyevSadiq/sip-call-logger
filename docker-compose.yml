@@ -1,0 +1,75 @@
+#version: "3.9"
+
+services:
+    nginx:
+        container_name: testing__nginx
+        build: ./docker/nginx
+        volumes:
+            - .:/app:delegated
+        ports:
+            - ${NGINX_PORT}:80
+        networks:
+            - app_net
+
+    php-fpm:
+        container_name: testing__php-fpm
+        build: ./docker/php-fpm
+        volumes:
+            - .:/app:delegated
+        ports:
+            - ${PHP_FPM_PORT}:9000
+        networks:
+            - app_net
+
+    php-cli:
+        container_name: testing__php-cli
+        build: ./docker/php-cli
+        volumes:
+            - .:/app:delegated
+            - composer_cache:/home/appuser/.composer/cache:delegated
+        networks:
+            - app_net
+
+    mysql:
+        container_name: testing__mysql
+        build: ./docker/mysql
+        volumes:
+            - mysql_data:/var/lib/mysql:delegated
+        command: --sql_mode=""
+        environment:
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+            MYSQL_DATABASE: ${DB_DATABASE}
+            SERVICE_NAME: mysql
+            TZ: ${TIME_ZONE}
+        restart: unless-stopped
+        tty: true
+        ports:
+            - ${MYSQL_PORT}:3306
+        networks:
+            - app_net
+
+
+    rabbitmq:
+        container_name: testing__rabbitmq
+        image: rabbitmq:3-management
+        restart: unless-stopped
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+        volumes:
+            - rabbitmq_data:/var/lib/rabbitmq
+        environment:
+            RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+            RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+        networks:
+            - app_net
+
+networks:
+    app_net:
+
+volumes:
+    mysql_data:
+    composer_cache:
+    rabbitmq_data:
